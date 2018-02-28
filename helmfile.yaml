@@ -1,0 +1,30 @@
+repositories:
+- name: brigade
+  url: https://azure.github.io/brigade
+
+charts:
+- name: brigade-project
+  chart: brigade/brigade-project
+  values:
+  - values.yaml
+  - "environments/{{ env \"ENV\" }}/values.yaml"
+  - "environments/{{ env \"ENV\" }}/secrets.yaml"
+  set:
+  - name: secrets.env
+    value: "{{ env \"ENV\" }}"
+  - name: secrets.image
+    value: "{{ env \"IMAGE\" }}"
+  - name: secrets.command
+    value: "{{ env \"COMMAND\" }}"
+  - name: secrets.serviceAccount
+    value: "{{ env \"SERVICE_ACCOUNT\" }}"
+  - name: project
+    value: "{{ env \"PROJECT\" }}"
+  - name: repository
+    value: "github.com/{{ env \"PROJECT\" }}"
+  - name: cloneURL
+    value: "https://github.com/{{ env \"PROJECT\" }}.git"
+  - name: secrets.slackWebhook
+    value: ""
+  - name: secrets.slackUsername
+    value: ""

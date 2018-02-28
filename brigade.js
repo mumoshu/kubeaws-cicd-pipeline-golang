@@ -9,8 +9,8 @@ function notify(e, project) {
 
         slack.image = "technosophos/slack-notify:latest"
         slack.env = {
-            SLACK_WEBHOOK: project.secrets.SLACK_WEBHOOK,
-            SLACK_USERNAME: project.secrets.SLACK_USERNAME,
+            SLACK_WEBHOOK: project.secrets.slackWebhook,
+            SLACK_USERNAME: project.secrets.slackUsername,
             SLACK_TITLE: "Deployment to ${e.payload.environment}",
             SLACK_MESSAGE: m + " <https://" + project.repo.name + ">",
             SLACK_COLOR: "#00ff00"
@@ -25,13 +25,13 @@ function notify(e, project) {
 
 function deploy(e, project) {
     var env = e.payload.environment
-    var myenv = project.secrets.ENV
+    var myenv = project.secrets.env
     if (myenv != env) {
 	console.log("skipping deployment to ${envenv}: this pipeline will deploy only to ${myenv}");
         return
     }
-    var image = project.secrets.IMAGE
-    var command = project.secrets.COMMAND
+    var image = project.secrets.image
+    var command = project.secrets.command
     var deploy = new Job("deploy", image)
 
     // Set up all the namespaces with network policies, RBAC policies, and so on.
@@ -40,7 +40,7 @@ function deploy(e, project) {
     ];
 
     // TODO create the service account "cluster-brigade"
-    deploy.serviceAccount = project.secrets.SERVICE_ACCOUNT
+    deploy.serviceAccount = project.secrets.serviceAccount
 
     deploy.run().then(res => {
         notify(e, project)
