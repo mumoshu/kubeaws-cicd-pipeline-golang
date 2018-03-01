@@ -4,8 +4,8 @@ test:
 
 .PHONY: binary
 binary:
-	scripts/build
+	ship/build/scripts/build
 
 .PHONY: image
 image:
-	scripts/dockerbuild
+	ship/build/scripts/dockerbuild
