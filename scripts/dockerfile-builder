@@ -1,0 +1,11 @@
+#!/usr/bin/env bash -e
+
+arr=()
+while read -r line; do
+   if [[ "$line" =~ "FROM " ]] && [[ ! "$line" =~ " AS build-artifacts" ]]; then
+      break
+   fi
+   arr+=("$line")
+done < Dockerfile
+
+printf '%s\n' "${arr[@]}"
