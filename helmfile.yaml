@@ -1,14 +1,16 @@
 repositories:
 - name: brigade
   url: https://azure.github.io/brigade
+- name: kubeaws
+  url: https://mumoshu.github.io/kubeaws-charts
 
 charts:
 - name: brigade-project
   chart: brigade/brigade-project
   values:
-  - values.yaml
-  - "environments/{{ env \"ENV\" }}/values.yaml"
-  - "environments/{{ env \"ENV\" }}/secrets.yaml"
+  - "deploy/values.yaml"
+  - "deploy/environments/{{ env \"ENV\" }}/values.yaml"
+  - "deploy/environments/{{ env \"ENV\" }}/secrets.yaml"
   set:
   - name: secrets.env
     value: "{{ env \"ENV\" }}"
@@ -28,3 +30,13 @@ charts:
     value: ""
   - name: secrets.slackUsername
     value: ""
+- name: app
+  # Or ./chart if you'd like to bring your own
+  chart: kubeaws/std
+  values:
+  - "runtime/values.yaml"
+  - "runtime/environments/{{ env \"ENV\" }}/values.yaml"
+  - "runtime/environments/{{ env \"ENV\" }}/secrets.yaml"
+  set:
+  - name: secrets.env
+    value: "{{ env \"ENV\" }}"
