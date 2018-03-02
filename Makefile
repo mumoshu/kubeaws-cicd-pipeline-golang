@@ -10,6 +10,14 @@ binary:
 image:
 	ship/build/scripts/dockerbuild
 
+.PHONY: trigger-deploy
+trigger-deploy:
+	ship/release/scripts/trigger-deploy
+
+.PHONY: deploy
+deploy:
+	ship/release/scripts/deploy
+
 .PHONY: dockerpush
 dockerpush:
 	UPLOAD_ONLY=1 ship/build/scripts/dockerbuild

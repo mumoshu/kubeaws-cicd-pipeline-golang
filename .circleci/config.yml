@@ -74,16 +74,16 @@ jobs:
 
           `cat ~/sudo` make dockerpush
 
-  deploy:
+  trigger-deploy:
     docker:
     - image: mumoshu/golang-k8s-aws:1.9.1
     working_directory: ~/repo
     steps:
     - checkout
     - run:
-        name: deploy
+        name: trigger-deploy
         command: |
-          env ENV=test make deploy
+          env ENV=test make trigger-deploy
 
   ruby-test:
     docker:
@@ -142,6 +142,6 @@ workflows:
         type: approval
         requires:
         - dockerimage
-    - deploy:
+    - trigger-deploy:
         requires:
         - deploy-hold
