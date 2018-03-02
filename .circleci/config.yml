@@ -1,0 +1,147 @@
+version: 2
+jobs:
+  test:
+    docker:
+    - image: mumoshu/golang-k8s-aws:1.9.1
+    steps:
+    - checkout
+    - run:
+        name: run tests
+        command: |
+          make test
+
+  dockerimage:
+    docker:
+    - image: mumoshu/golang-k8s-aws:1.9.1
+    working_directory: ~/repo
+    steps:
+    - checkout
+    - setup_remote_docker:
+        # Minimum requirement for Docker's multi-stage builds is Docker 17.05.0-ce
+        version: 17.05.0-ce
+    # Required to build locally with the circleci command
+    # See https://discuss.circleci.com/t/circleci-build-local-machine-fails-when-using-setup-remote-docker/15487/2
+    - run:
+        name: "Prepend sudo to any docker command only when in local builds"
+        command: |
+          echo $CIRCLE_ENV
+          if [[ $CIRCLE_ENV == *"localbuild"* ]]; then
+            echo "This is a local build. Enabling sudo for docker"
+            echo sudo > ~/sudo
+          else
+            echo "This is not a local build. Disabling sudo for docker"
+            touch ~/sudo
+          fi
+    - run:
+        name: "Establish private gem access"
+        command: |
+          if [ ! -z "${SSH_PRIVATE_KEY}" ]; then
+            echo Using ssh private key from SSH_PRIVATE_KEY envvar
+          elif [ ! -z "${AWS_ACCESS_KEY_ID}" ]; then
+            echo Using sops and/or AWS KMS for decryptiong credentials
+          elif [ ! -z "${GITHUB_TOKEN}" ]; then
+            echo Trying to download private gems using github token
+          elif [ -e ~/.ssh/id_rsa ]; then
+            echo Using ~/.ssh/id_rsa for git-cloning. It will fail when tried to git-clone a private repo without a circleci-managed deploy key.
+          else
+            echo No credential required for git-cloning private repos found. ~/.ssh/id_rsa does not exist. SSH_PRIVATE_KEY, KEY and GITHUB_TOKE are all missing. 1>&2
+            exit 1
+          fi
+    - run:
+        name: "Determine env from git-ref"
+        command: |
+          CIRCLE_PR_BRANCH=`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
+          echo "export CIRCLE_PR_BRANCH=$CIRCLE_PR_BRANCH" >> $BASH_ENV
+          echo "$CIRCLE_BRANCH"
+          ENV=""
+          if [ "$CIRCLE_BRANCH" =~ "develop" ]; then
+            ENV=staging
+          elsif [ "$CIRCLE_BRANCH" = "master" ]; then
+            ENV=production
+          fi
+          echo "export ENV=$ENV" >> $BASH_ENV
+    - run:
+        name: "Build Docker images with layer caching"
+        command: |
+          `cat ~/sudo` bash -c 'env UPLOAD_ALL_IMAGES=1 make image'
+    - run:
+        name: "Push Docker images to AWS ECR"
+        command: |
+          aws ecr get-login --no-include-email --region ap-northeast-1 > docker-login-to-ecr 
+          # Avoid the "/bin/bash: line 48: docker login -u AWS -p  .... .dkr.ecr.ap-northeast-1.amazonaws.com: File name too long" error
+          chmod +x docker-login-to-ecr
+          `cat ~/sudo` ./docker-login-to-ecr
+
+          `cat ~/sudo` make dockerpush
+
+  deploy:
+    docker:
+    - image: mumoshu/golang-k8s-aws:1.9.1
+    working_directory: ~/repo
+    steps:
+    - checkout
+    - run:
+        name: deploy
+        command: |
+          env ENV=test make deploy
+
+  ruby-test:
+    docker:
+       - image: circleci/ruby:2.4.1-node-browsers
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "Gemfile.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run:
+          name: install dependencies
+          command: |
+            bundle install --jobs=4 --retry=3 --path vendor/bundle
+
+      - save_cache:
+          paths:
+            - ./vendor/bundle
+          key: v1-dependencies-{{ checksum "Gemfile.lock" }}
+        
+      # Database setup
+      - run: bundle exec rake db:create
+      - run: bundle exec rake db:schema:load
+
+      # run tests!
+      - run:
+          name: run tests
+          command: |
+            mkdir /tmp/test-results
+            TEST_FILES="$(circleci tests glob "spec/**/*_spec.rb" | circleci tests split --split-by=timings)"
+            
+            bundle exec rspec --format progress \
+                            --format RspecJunitFormatter \
+                            --out /tmp/test-results/rspec.xml \
+                            --format progress \
+                            "${TEST_FILES}"
+
+      # collect reports
+      - store_test_results:
+          path: /tmp/test-results
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: test-results
+
+workflows:
+  version: 2
+  build:
+    jobs:
+    - #ruby-test
+    - test
+    - dockerimage
+    - deploy-hold:
+        type: approval
+        requires:
+        - dockerimage
+    - deploy:
+        requires:
+        - deploy-hold

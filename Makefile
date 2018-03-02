@@ -9,3 +9,7 @@ binary:
 .PHONY: image
 image:
 	ship/build/scripts/dockerbuild
+
+.PHONY: dockerpush
+dockerpush:
+	UPLOAD_ONLY=1 ship/build/scripts/dockerbuild
