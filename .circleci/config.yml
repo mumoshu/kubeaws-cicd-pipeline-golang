@@ -1,3 +1,7 @@
+notify:
+  webhooks:
+    - url: https://webhook.atomist.com/atomist/circle/teams/T02BMEJ7X
+
 version: 2
 jobs:
   test:
