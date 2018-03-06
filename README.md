@@ -54,6 +54,10 @@ $ export AWS_ACCESS_KEY_ID=...
 $ export AWS_SECRET_ACCESS_KEY=...
 ```
 
+### Install helm
+
+[helm](https://github.com/kubernetes/helm/releases) is a package manager likt `apt` or `yum` for Kubernetes.
+
 ### Install `sops-vault` app
 
 [sops-vault](https://github.com/mumoshu/sops-vault) allows you to transparently decrypt a required credential for running commands.
