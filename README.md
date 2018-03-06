@@ -85,6 +85,28 @@ $ export GITHUB_TOKEN=<the token generated in above>
 $ deploy --env test <your github org>/<your github repo> e.g. `deploy --env test mumoshu/myrepo`
 ```
 
+## OPTIONAL: Customizations
+
+### Notifying deployments to Slack
+
+Update the following section of your `helmfile.yaml`:
+
+```
+  - name: secrets.slackWebhook
+    value: ""
+  - name: secrets.slackUsername
+    value: ""
+```
+
+To:
+
+```
+  - name: secrets.slackWebhook
+    value: "{{ env \"SLACK_WEBHOOK\" }}"
+  - name: secrets.slackUsername
+    value: "{{ env \"SLACK_USERNAME\" }}"
+```
+
 ## Usage:
 
 ```
