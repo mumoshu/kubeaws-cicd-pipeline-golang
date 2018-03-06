@@ -70,6 +70,12 @@ $ export AWS_SECRET_ACCESS_KEY=...
 
 Customize the [`helmfile` contained in this repository](https://github.com/mumoshu/kubeaws-cicd-pipeline-golang/blob/master/helmfile.yaml) according to your use-case.
 
+In the default helmfile.yaml, we have:
+
+- [kubeaws-charts/std](https://github.com/mumoshu/kubeaws-charts/tree/master/std) chart to easily deploy your stateless web/grpc app to K8S without writing too much boiler-plate helm templates
+- [Azure/brigade](https://github.com/Azure/brigade) project to run `helmfile sync` whenever a deployment is triggered
+- WIP: A webhook gateway to trigger the brigade project whenever a github deployment is made, without exposing the K8S API server to the Internet
+
 ### Deploy your app along with a deployment pipeline
 
 ```
