@@ -69,7 +69,17 @@ Customize the [`helmfile` contained in this repository](https://github.com/mumos
 ### Deploy your app along with a deployment pipeline
 
 ```
-$ ENV=test IMAGE=your-docker-image TAG=your-docker-image-tag sops-vault run helmfile sync
+$ export ENV=test
+
+$ export BRIGADE_IMAGE=mumoshu/golang-k8s-aws:1.9.1
+$ export BRIGADE_COMMAND="helmfile sync"
+$ export BRIGADE_SERVICE_ACCOUNT=default
+
+$ export PROJECT=<your github org>/<your repo>
+
+$ export APP_IMAGE=<your app's docker image>:<commit id>
+
+$ sops-vault run helmfile sync
 ```
 
 - `sops-vault` decrypts `kubeconfig` using AWS KMS and then calls out to `helmfile sync`

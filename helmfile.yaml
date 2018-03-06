@@ -15,11 +15,11 @@ charts:
   - name: secrets.env
     value: "{{ env \"ENV\" }}"
   - name: secrets.image
-    value: "{{ env \"IMAGE\" }}"
+    value: "{{ env \"BRIGADE_IMAGE\" }}"
   - name: secrets.command
-    value: "{{ env \"COMMAND\" }}"
+    value: "{{ env \"BRIGADE_COMMAND\" }}"
   - name: secrets.serviceAccount
-    value: "{{ env \"SERVICE_ACCOUNT\" }}"
+    value: "{{ env \"BRIGADE_SERVICE_ACCOUNT\" }}"
   - name: project
     value: "{{ env \"PROJECT\" }}"
   - name: repository
