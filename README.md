@@ -79,6 +79,15 @@ In the default helmfile.yaml, we have:
 ### Deploy your app along with a deployment pipeline
 
 ```
+$ git clone https://github.com/mumoshu/kubeaws-cicd-pipeline-golang temp/
+$ cp temp/{brigade.js,helmfile.yaml,ship/} .
+$ rm -rf temp
+$ git add brigade.js helmfile.yaml values.yaml ship/
+$ git commit -m 'Enable an automated deployment pipeline'
+$ git push origin master
+```
+
+```
 $ export ENV=test
 
 $ export BRIGADE_IMAGE=mumoshu/golang-k8s-aws:1.9.1
@@ -105,6 +114,10 @@ $ export GITHUB_TOKEN=<the token generated in above>
 $ deploy --env test <your github org>/<your github repo> e.g. `deploy --env test mumoshu/myrepo`
 ```
 
+### Automatically triggering a deployment pipeline
+
+Add the same `deploy` command and envvars to your CI pipeline definition in e.g. .circleci/config.yml when you're a CircleCI user.
+
 ## OPTIONAL: Customizations
 
 ### Notifying deployments to Slack
@@ -125,28 +138,4 @@ To:
     value: "{{ env \"SLACK_WEBHOOK\" }}"
   - name: secrets.slackUsername
     value: "{{ env \"SLACK_USERNAME\" }}"
-```
-
-## Usage:
-
-```
-# Preparation
-
-$ git add brigade.js helmfile.yaml values.yaml environments/
-$ git commit -m 'Enable helmfile+brigade based deployment pipeline'
-$ git push origin master
-
-# Invoke this via:
-
-# * Your shell
-ENV=test IMAGE=mumoshu/golang-k8s-aws:1.9.1 COMMAND="helmfile sync" SERVICE_ACCOUNT=default PROJECT=deis/empty-testbed helmfile sync
-
-# It will update:
-# (1) All the charts included in helmfile, including brigade project and your app(s)
-
-# And then trigger a deployment via:
-# * GitHub Webhook events(Pull request, Deployment)
-#
-# So that it will update:
-# (1) All the charts included in helmfile, including brigade project and your app(s)
 ```
