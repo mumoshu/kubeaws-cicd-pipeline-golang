@@ -64,7 +64,7 @@ $ export AWS_SECRET_ACCESS_KEY=...
 
 ### Compose `helmfile.yaml`
 
-
+Customize the [`helmfile` contained in this repository](https://github.com/mumoshu/kubeaws-cicd-pipeline-golang/blob/master/helmfile.yaml) according to your use-case.
 
 ### Deploy your app along with a deployment pipeline
 
