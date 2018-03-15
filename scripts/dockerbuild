@@ -1,0 +1,146 @@
+#!/bin/bash
+
+if [ ! -z "$DEBUG" ]; then
+  set -vx
+fi
+
+set -eu
+
+REGISTRY=${REGISTRY:-}
+if [ ! -z "${REGISTRY}" ]; then
+  REGISTRY=${REGISTRY}/
+fi
+
+REPO=${REPO:-${REGISTRY}$(basename `git rev-parse --show-toplevel`)}
+SHA1=$(git rev-parse --short HEAD)
+TAG=${TAG:-$(git describe --exact-match --abbrev=0 --tags $SHA1 2> /dev/null || true)}
+if [ -z "$TAG" ]; then
+	VERSION=$SHA1
+else
+	VERSION=$TAG
+fi
+# check for changed files (not untracked files)
+if [ -n "$(git diff --shortstat 2> /dev/null | tail -n1)" ]; then
+    # NOTE: ${VERSION}+dirty results in an error like:
+    #   invalid argument "kubeaws-cicd-pipeline:build-assets-testtag2+dirty" for t: invalid reference format
+    # This is due to that "+" isn't allowed in valid docker image ref 
+    VERSION="${VERSION}-dirty"
+fi
+
+BUILD_ASSETS_TYPE=build-assets
+RUNTIME_TYPE=runtime
+TARGET_IMAGE=${REPO}:${VERSION}
+BUILD_ASSETS_IMAGE=${REPO}:${BUILD_ASSETS_TYPE}-${VERSION}
+RUNTIME_IMAGE=${REPO}:${RUNTIME_TYPE}-${VERSION}
+
+if [ ! -z "${UPLOAD_ALL_IMAGES:-}" ]; then
+  UPLOAD_BUILD_ASSETS_IMAGE=1
+  UPLOAD_RUNTIME_IMAGE=1
+fi
+
+build() {
+  scratch=$(mktemp -d -t tmp.XXXXXXXXXX)
+  function finish {
+    rm -rf "$scratch"
+  }
+  trap finish EXIT
+
+  echo Building ${TARGET_IMAGE}...
+
+  SECRET=""
+  if [ ! -z "${GITHUB_TOKEN:-}" ]; then
+    SECRET="token:${GITHUB_TOKEN}"
+  fi
+  if [ ! -z "${SSH_KEY:-}" ]; then
+    SECRET="key:${SSH_KEY}"
+  fi
+
+  CACHE_IMAGES=""
+  for tpe in runtime build-assets; do
+    for ver in master develop; do
+      CACHE_IMAGES="$CACHE_IMAGES ${REPO}:${tpe}-${ver}"
+    done
+  done
+
+  echo fetching build cache: "$CACHE_IMAGES"
+
+  echo "$CACHE_IMAGES" | xargs -P10 -n1 docker pull || true
+
+  for tpe in runtime build-assets; do
+    for ver in master develop; do
+      t=${REPO}:${tpe}-${ver}
+      if ! docker image inspect $t >/dev/null 1>&2; then
+        echo "$t is not found."
+      fi
+    done
+  done
+
+  echo building intermediate image: $BUILD_ASSETS_IMAGE
+
+  set +e
+  docker build -t $BUILD_ASSETS_IMAGE \
+    --target build-artifacts \
+    --build-arg GITHUB_USERNAME=$GITHUB_USERNAME \
+    --build-arg FTP_PROXY=$SECRET . > dockerbuild.log 2>&1
+  status=$?
+  set -e
+
+  if [ "$status" -ne 0 ]; then
+    cat dockerbuild.log
+    exit 1
+  fi
+
+  echo building final image: $RUNTIME_IMAGE
+
+  set +e
+  docker build -t $RUNTIME_IMAGE --target runtime .  > dockerbuild.log 2>&1
+  status=$?
+  set -e
+
+  if [ "$status" -ne 0 ]; then
+    cat dookerbuild.log
+    exit 1
+  fi
+
+  echo tagging image: $TARGET_IMAGE
+
+  docker tag $RUNTIME_IMAGE $TARGET_IMAGE
+
+  echo run docker run -it $TARGET_IMAGE to run your app!
+}
+
+upload() {
+  if [ ! -z "${UPLOAD_BUILD_ASSETS_IMAGE:-}" ]; then
+    echo "uploading $BUILD_ASSETS_IMAGE"
+
+    set +e
+    docker push $BUILD_ASSETS_IMAGE > dockerbuild.log 2>&1
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
+      cat dookerbuild.log
+      exit 1
+    fi
+  fi
+
+  if [ ! -z "${UPLOAD_RUNTIME_IMAGE:-}" ]; then
+    echo "uploading $RUNTIME_IMAGE"
+
+    set +e
+    docker push $RUNTIME_IMAGE > dockerbuild.log 2>&1
+    status=$?
+    set -e
+
+    if [ "$status" -ne 0 ]; then
+      cat dookerbuild.log
+      exit 1
+    fi
+  fi
+}
+
+if [ -z "$UPLOAD_ONLY" ]; then
+  build
+fi
+
+upload
