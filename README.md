@@ -1,18 +1,8 @@
-## Installation
+## Getting started
 
-### Generate GitHHub token
+### Per-machine setup
 
-Generate a new GitHub personal access token for calling GitHub Deployments API:
-
-https://github.com/settings/tokens
-
-- Click "Generate new token"
-- Input whatever you think helpful to "Token description"
-- In "Select scopes", check "repo_deployment"
-- Click "Generate token"
-- Save the generated token in a safe place
-
-### Setup the `deploy` app
+##### Setup the `deploy` app
 
 Install [remind101/deploy](https://github.com/remind101/deploy).
 
@@ -37,7 +27,34 @@ Deploying mumoshu/myrepo to test...
 Error from github deployments: Timed out waiting for build to start. Did you add a webhook to handle deployment events?
 ```
 
-### Setup AWS credentials and AWS KMS access
+
+#### Install helm
+
+[helm](https://github.com/kubernetes/helm/releases) is a package manager likt `apt` or `yum` for Kubernetes.
+
+#### Install `sops-vault` app
+
+[sops-vault](https://github.com/mumoshu/sops-vault) allows you to transparently decrypt a required credential for running commands.
+
+#### Install `helmfile` app
+
+[helmfile](https://github.com/roboll/helmfile) allows you to declaratively manage all the helm releases forming your app deployed to K8S.
+
+### Per-project setup
+
+#### Generate GitHub token
+
+Generate a new GitHub personal access token for calling GitHub Deployments API:
+
+https://github.com/settings/tokens
+
+- Click "Generate new token"
+- Input whatever you think helpful to "Token description"
+- In "Select scopes", check "repo_deployment"
+- Click "Generate token"
+- Save the generated token in a safe place
+
+#### Setup AWS credentials and AWS KMS access
 
 Using a SSO service like OneLogin:
 
@@ -54,19 +71,7 @@ $ export AWS_ACCESS_KEY_ID=...
 $ export AWS_SECRET_ACCESS_KEY=...
 ```
 
-### Install helm
-
-[helm](https://github.com/kubernetes/helm/releases) is a package manager likt `apt` or `yum` for Kubernetes.
-
-### Install `sops-vault` app
-
-[sops-vault](https://github.com/mumoshu/sops-vault) allows you to transparently decrypt a required credential for running commands.
-
-### Install `helmfile` sync
-
-[helmfile](https://github.com/roboll/helmfile) allows you to declaratively manage all the helm releases forming your app deployed to K8S.
-
-### Compose `helmfile.yaml`
+#### Compose `helmfile.yaml`
 
 Customize the [`helmfile` contained in this repository](https://github.com/mumoshu/kubeaws-cicd-pipeline-golang/blob/master/helmfile.yaml) according to your use-case.
 
@@ -76,7 +81,7 @@ In the default helmfile.yaml, we have:
 - [Azure/brigade](https://github.com/Azure/brigade) project to run `helmfile sync` whenever a deployment is triggered
 - WIP: A webhook gateway to trigger the brigade project whenever a github deployment is made, without exposing the K8S API server to the Internet
 
-### Deploy your app along with a deployment pipeline
+#### Deploy your app along with a deployment pipeline
 
 ```
 $ git clone https://github.com/mumoshu/kubeaws-cicd-pipeline-golang temp/
@@ -104,7 +109,9 @@ $ sops-vault run helmfile sync
 - `sops-vault` decrypts `kubeconfig` using AWS KMS and then calls out to `helmfile sync`
 - `helmfile sync` deploys all the helm releases as declared in `helmfile.yaml`
 
-### Manually triggering a deployment pipeline
+### Test the setup
+
+#### Manually triggering a deployment pipeline
 
 Trigger a deployment (again) by running `deploy` app to call GitHub Deployment API for creating a new deployment:
 
@@ -114,13 +121,13 @@ $ export GITHUB_TOKEN=<the token generated in above>
 $ deploy --env test <your github org>/<your github repo> e.g. `deploy --env test mumoshu/myrepo`
 ```
 
-### Automatically triggering a deployment pipeline
+#### Automatically triggering a deployment pipeline
 
 Add the same `deploy` command and envvars to your CI pipeline definition in e.g. .circleci/config.yml when you're a CircleCI user.
 
-## OPTIONAL: Customizations
+### Customizations
 
-### Notifying deployments to Slack
+#### Notifying deployments to Slack
 
 Update the following section of your `helmfile.yaml`:
 

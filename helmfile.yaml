@@ -3,6 +3,8 @@ repositories:
   url: https://azure.github.io/brigade
 - name: kubeaws
   url: https://mumoshu.github.io/kubeaws-charts
+- name: brigade-automation
+  url: https://mumoshu.github.io/brigade-automation
 
 charts:
 - name: brigade-project
@@ -30,6 +32,13 @@ charts:
     value: ""
   - name: secrets.slackUsername
     value: ""
+- name: brigade-automation
+  chart: brigade-automation/brigade-automation
+  set:
+  - name: GITHUB_TOKEN
+    value: "{{ env \"GITHUB_TOKEN\" }}"
+  - name: ATOMIST_TEAM
+    value: "{{ env \"ATOMIST_TEAM\" }}"
 - name: app
   # Or ./chart if you'd like to bring your own
   chart: kubeaws/std
